@@ -116,10 +116,5 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 
 
-ALLOWED_HOSTS = [
-    'smartbiz.org.uz',
-    'www.smartbiz.org.uz',
-    '13.48.46.40',
-    'localhost',
-    '127.0.0.1',
-]
+
+ALLOWED_HOSTS = ['32.236.200.176', 'smartbiz.org.uz', '127.0.0.1', 'localhost']
