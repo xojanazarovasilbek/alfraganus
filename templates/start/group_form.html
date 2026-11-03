@@ -2,41 +2,217 @@
 {% block title %}{% if group %}Guruhni tahrirlash{% else %}Yangi guruh{% endif %}{% endblock %}
 
 {% block content %}
-<h1>{% if group %}Guruhni tahrirlash{% else %}Yangi guruh qoshish{% endif %}</h1>
+<style>
+    /* Konteyner va kartochka stili */
+    .form-card {
+        max-width: 580px;
+        margin: 30px auto;
+        padding: 28px;
+        background-color: #ffffff;
+        border-radius: 12px;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+        border: 1px solid #e5e7eb;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
 
-<form method="post">
-    {% csrf_token %}
-    <label>Guruh nomi
-        <input type="text" name="name" value="{{ group.name|default:'' }}" required placeholder="Masalan: Ingliz tili (CEFR)">
-    </label>
-    <label>Ustoz
-        <select name="teacher">
-            <option value="">-- tanlanmagan --</option>
-            {% for t in teachers %}
-            <option value="{{ t.id }}" {% if group and group.teacher_id == t.id %}selected{% endif %}>{{ t.full_name }}</option>
-            {% endfor %}
-        </select>
-    </label>
-    <label>Oylik kurs narxi
-        <input type="number" name="price" value="{{ group.price|default:0 }}">
-    </label>
-    <label>Dars kunlari</label>
-    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:6px;">
-        {% for code, name in weekdays %}
-        <label style="display:flex; align-items:center; gap:4px; font-weight:normal;">
-            <input type="checkbox" name="days" value="{{ code }}" {% if code in selected_days %}checked{% endif %} style="width:auto;">
-            {{ name }}
-        </label>
-        {% endfor %}
+    /* Sarlavha qismi */
+    .form-header {
+        border-bottom: 1px solid #f3f4f6;
+        padding-bottom: 16px;
+        margin-bottom: 24px;
+    }
+
+    .form-header h1 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #111827;
+        margin: 0;
+    }
+
+    /* Form elementlari */
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label.field-label {
+        display: block;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 6px;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 10px 14px;
+        font-size: 0.95rem;
+        color: #1f2937;
+        background-color: #ffffff;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        box-sizing: border-box;
+        transition: all 0.2s ease-in-out;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: #2563eb;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+    }
+
+    select.form-control {
+        cursor: pointer;
+    }
+
+    /* Ikki ustunli vaqt tanlash qatori */
+    .time-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+    }
+
+    /* Dars kunlari (Checkbox grid) */
+    .days-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 6px;
+    }
+
+    .day-checkbox {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background-color: #f9fafb;
+        border: 1px solid #e5e7eb;
+        padding: 8px 14px;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        color: #374151;
+        font-weight: 500;
+        cursor: pointer;
+        user-select: none;
+        transition: all 0.2s ease;
+    }
+
+    .day-checkbox:hover {
+        background-color: #f3f4f6;
+        border-color: #d1d5db;
+    }
+
+    .day-checkbox input[type="checkbox"] {
+        accent-color: #2563eb;
+        width: 16px;
+        height: 16px;
+        cursor: pointer;
+    }
+
+    /* Saqlash tugmasi */
+    .btn-submit {
+        width: 100%;
+        background-color: #2563eb;
+        color: #ffffff;
+        border: none;
+        padding: 12px;
+        border-radius: 8px;
+        font-size: 0.95rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+        margin-top: 10px;
+    }
+
+    .btn-submit:hover {
+        background-color: #1d4ed8;
+    }
+
+    .btn-submit:active {
+        transform: scale(0.99);
+    }
+
+    /* Navigatsiya linki */
+    .back-wrapper {
+        margin-top: 24px;
+        padding-top: 16px;
+        border-top: 1px solid #f3f4f6;
+        text-align: center;
+    }
+
+    .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: #6b7280;
+        text-decoration: none;
+        font-size: 0.875rem;
+        font-weight: 500;
+        transition: color 0.2s ease;
+    }
+
+    .back-link:hover {
+        color: #2563eb;
+    }
+</style>
+
+<div class="form-card">
+    <div class="form-header">
+        <h1>{% if group %}Guruhni tahrirlash{% else %}Yangi guruh qo'shish{% endif %}</h1>
     </div>
-    <label>Boshlanish vaqti
-        <input type="time" name="start_time" value="{{ group.start_time|time:'H:i'|default:'' }}">
-    </label>
-    <label>Tugash vaqti
-        <input type="time" name="end_time" value="{{ group.end_time|time:'H:i'|default:'' }}">
-    </label>
-    <button type="submit" style="margin-top:16px;">Saqlash</button>
-</form>
 
-<p style="margin-top:16px;"><a href="{% url 'group_list' tenant.category.slug tenant.id %}">&larr; Royxatga qaytish</a></p>
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <label for="id_name" class="field-label">Guruh nomi</label>
+            <input type="text" id="id_name" name="name" class="form-control" value="{{ group.name|default:'' }}" required placeholder="Masalan: Ingliz tili (CEFR)">
+        </div>
+
+        <div class="form-group">
+            <label for="id_teacher" class="field-label">Ustoz</label>
+            <select name="teacher" id="id_teacher" class="form-control">
+                <option value="">-- tanlanmagan --</option>
+                {% for t in teachers %}
+                <option value="{{ t.id }}" {% if group and group.teacher_id == t.id %}selected{% endif %}>{{ t.full_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="id_price" class="field-label">Oylik kurs narxi (so'm)</label>
+            <input type="number" id="id_price" name="price" class="form-control" value="{{ group.price|default:0 }}">
+        </div>
+
+        <div class="form-group">
+            <label class="field-label">Dars kunlari</label>
+            <div class="days-grid">
+                {% for code, name in weekdays %}
+                <label class="day-checkbox">
+                    <input type="checkbox" name="days" value="{{ code }}" {% if code in selected_days %}checked{% endif %}>
+                    {{ name }}
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="time-grid">
+            <div class="form-group">
+                <label for="id_start_time" class="field-label">Boshlanish vaqti</label>
+                <input type="time" id="id_start_time" name="start_time" class="form-control" value="{{ group.start_time|time:'H:i'|default:'' }}">
+            </div>
+
+            <div class="form-group">
+                <label for="id_end_time" class="field-label">Tugash vaqti</label>
+                <input type="time" id="id_end_time" name="end_time" class="form-control" value="{{ group.end_time|time:'H:i'|default:'' }}">
+            </div>
+        </div>
+
+        <button type="submit" class="btn-submit">Saqlash</button>
+    </form>
+
+    <div class="back-wrapper">
+        <a href="{% url 'group_list' tenant.category.slug tenant.id %}" class="back-link">
+            &larr; Ro'yxatga qaytish
+        </a>
+    </div>
+</div>
 {% endblock %}

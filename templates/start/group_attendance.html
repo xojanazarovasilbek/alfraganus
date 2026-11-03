@@ -2,33 +2,223 @@
 {% block title %}{{ group.name }} - davomat{% endblock %}
 
 {% block content %}
-<p><a href="{% url 'group_list' tenant.category.slug tenant.id %}">&larr; Guruhlarga qaytish</a></p>
-<h1>{{ group.name }} &mdash; bugungi davomat ({{ today|date:"d.m.Y" }})</h1>
+<style>
+    /* Konteyner va umumiy uslublar */
+    .attendance-container {
+        max-width: 900px;
+        margin: 30px auto;
+        padding: 24px;
+        background-color: #ffffff;
+        border-radius: 12px;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+        border: 1px solid #e5e7eb;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
 
-{% if students %}
-<form method="post">
-    {% csrf_token %}
-    <table>
-        <tr><th>O'quvchi</th><th>Holati</th><th>Izoh</th></tr>
-        {% for s in students %}
-        <tr>
-            <td>{{ s.full_name }}</td>
-            <td>
-                <select name="status_{{ s.id }}">
-                    <option value="present" selected>Keldi</option>
-                    <option value="absent">Sababsiz kelmadi</option>
-                    <option value="excused">Sababli kelmadi</option>
-                </select>
-            </td>
-            <td>
-                <input type="text" name="note_{{ s.id }}" placeholder="Sababi (ixtiyoriy)">
-            </td>
-        </tr>
-        {% endfor %}
-    </table>
-    <button type="submit" style="margin-top:16px;">Davomatni saqlash</button>
-</form>
-{% else %}
-<p class="empty">Bu guruhda hali oquvchi yoq.</p>
-{% endif %}
+    /* Yuqori qism va navibar */
+    .top-nav {
+        margin-bottom: 16px;
+    }
+
+    .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: #6b7280;
+        text-decoration: none;
+        font-size: 0.875rem;
+        font-weight: 500;
+        transition: color 0.2s ease;
+    }
+
+    .back-link:hover {
+        color: #2563eb;
+    }
+
+    .header-title {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+        border-bottom: 1px solid #f3f4f6;
+        padding-bottom: 16px;
+        margin-bottom: 24px;
+    }
+
+    .header-title h1 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #111827;
+        margin: 0;
+    }
+
+    .date-badge {
+        font-size: 0.875rem;
+        color: #374151;
+        background-color: #f3f4f6;
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-weight: 600;
+    }
+
+    /* Jadval stili */
+    .table-responsive {
+        overflow-x: auto;
+        border-radius: 8px;
+        border: 1px solid #e5e7eb;
+    }
+
+    .attendance-table {
+        width: 100%;
+        border-collapse: collapse;
+        text-align: left;
+        font-size: 0.925rem;
+    }
+
+    .attendance-table th {
+        background-color: #f9fafb;
+        color: #4b5563;
+        font-weight: 600;
+        padding: 12px 16px;
+        border-bottom: 1px solid #e5e7eb;
+        white-space: nowrap;
+    }
+
+    .attendance-table td {
+        padding: 12px 16px;
+        border-bottom: 1px solid #f3f4f6;
+        vertical-align: middle;
+        color: #1f2937;
+    }
+
+    .attendance-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    .attendance-table tbody tr:hover {
+        background-color: #f9fafb;
+    }
+
+    .student-name {
+        font-weight: 600;
+        color: #111827;
+    }
+
+    /* Input va Select boshqaruvi */
+    .form-control {
+        width: 100%;
+        padding: 8px 12px;
+        font-size: 0.875rem;
+        color: #1f2937;
+        background-color: #ffffff;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        box-sizing: border-box;
+        transition: all 0.2s ease-in-out;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: #2563eb;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+    }
+
+    select.form-control {
+        cursor: pointer;
+    }
+
+    /* Harakatlar tugmasi */
+    .actions-bar {
+        margin-top: 20px;
+        display: flex;
+        justify-content: flex-end;
+    }
+
+    .btn-submit {
+        background-color: #2563eb;
+        color: #ffffff;
+        border: none;
+        padding: 10px 24px;
+        border-radius: 8px;
+        font-size: 0.95rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+    }
+
+    .btn-submit:hover {
+        background-color: #1d4ed8;
+    }
+
+    .btn-submit:active {
+        transform: scale(0.98);
+    }
+
+    /* Bo'sh holat stili */
+    .empty-state {
+        text-align: center;
+        padding: 40px 20px;
+        color: #6b7280;
+        font-size: 1rem;
+        background-color: #f9fafb;
+        border-radius: 8px;
+        border: 1px dashed #d1d5db;
+    }
+</style>
+
+<div class="attendance-container">
+    <div class="top-nav">
+        <a href="{% url 'group_list' tenant.category.slug tenant.id %}" class="back-link">
+            &larr; Guruhlarga qaytish
+        </a>
+    </div>
+
+    <div class="header-title">
+        <h1>{{ group.name }} &mdash; bugungi davomat</h1>
+        <span class="date-badge">Sana: {{ today|date:"d.m.Y" }}</span>
+    </div>
+
+    {% if students %}
+    <form method="post">
+        {% csrf_token %}
+        <div class="table-responsive">
+            <table class="attendance-table">
+                <thead>
+                    <tr>
+                        <th style="width: 35%;">O'quvchi</th>
+                        <th style="width: 30%;">Holati</th>
+                        <th style="width: 35%;">Izoh</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in students %}
+                    <tr>
+                        <td class="student-name">{{ s.full_name }}</td>
+                        <td>
+                            <select name="status_{{ s.id }}" class="form-control">
+                                <option value="present" selected>Keldi</option>
+                                <option value="absent">Sababsiz kelmadi</option>
+                                <option value="excused">Sababli kelmadi</option>
+                            </select>
+                        </td>
+                        <td>
+                            <input type="text" name="note_{{ s.id }}" placeholder="Sababi (ixtiyoriy)" class="form-control">
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="actions-bar">
+            <button type="submit" class="btn-submit">Davomatni saqlash</button>
+        </div>
+    </form>
+    {% else %}
+    <div class="empty-state">
+        Bu guruhda hali o'quvchi yo'q.
+    </div>
+    {% endif %}
+</div>
 {% endblock %}
